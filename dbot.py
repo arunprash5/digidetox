@@ -1,12 +1,14 @@
 import random
 import asyncio
 from datetime import datetime
-from telegram import Bot
+import pytz
+from telegram import Update
+from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
 
 TOKEN = "8512510824:AAHtU250Z1BlUneRgopiC5tDtgctbBfdhkg"
 CHAT_ID = "6280739103"
 
-bot = Bot(token=TOKEN)
+ist = pytz.timezone("Asia/Kolkata")
 
 messages = [
     "🧠 Brain cooldown initiated. No phone for {x} minutes.",
@@ -16,10 +18,11 @@ messages = [
     "🚨 Alert: Phone overuse detected. Lock it for {x} minutes."
 ]
 
-async def send_random_break():
+async def random_breaks(app):
+    bot = app.bot
     while True:
-        now = datetime.now()
-        
+        now = datetime.now(ist)
+
         if 9 <= now.hour <= 22:
             x = random.choice([10, 20, 30])
             message = random.choice(messages).format(x=x)
@@ -28,5 +31,3 @@ async def send_random_break():
 
         wait_minutes = random.randint(10, 60)
         await asyncio.sleep(wait_minutes * 60)
-
-asyncio.run(send_random_break())
