@@ -18,16 +18,27 @@ messages = [
     "🚨 Alert: Phone overuse detected. Lock it for {x} minutes."
 ]
 
-async def random_breaks(app):
-    bot = app.bot
-    while True:
-        now = datetime.now(ist)
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text("Focus Break Bot Activated 🚀")
 
-        if 9 <= now.hour <= 22:
-            x = random.choice([10, 20, 30])
-            message = random.choice(messages).format(x=x)
+async def random_breaks(context: ContextTypes.DEFAULT_TYPE):
+    now = datetime.now(ist)
 
-            await bot.send_message(chat_id=CHAT_ID, text=message)
+    if 9 <= now.hour <= 22:
+        x = random.choice([10, 20, 30])
+        message = random.choice(messages).format(x=x)
 
-        wait_minutes = random.randint(10, 60)
-        await asyncio.sleep(wait_minutes * 60)
+        await context.bot.send_message(chat_id=CHAT_ID, text=message)
+
+def main():
+    app = ApplicationBuilder().token(TOKEN).build()
+
+    app.add_handler(CommandHandler("start", start))
+
+    job_queue = app.job_queue
+    job_queue.run_repeating(random_breaks, interval=random.randint(600,3600), first=10)
+
+    app.run_polling()
+
+if __name__ == "__main__":
+    main()
