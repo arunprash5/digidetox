@@ -3,25 +3,15 @@ import asyncio
 from datetime import datetime, timedelta
 import pytz
 
-from telegram import (
-    Update,
-    InlineKeyboardButton,
-    InlineKeyboardMarkup,
-)
-
-from telegram.ext import (
-    ApplicationBuilder,
-    CommandHandler,
-    ContextTypes,
-    CallbackQueryHandler,
-)
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler, ContextTypes
 
 TOKEN = "8512510824:AAHtU250Z1BlUneRgopiC5tDtgctbBfdhkg"
 CHAT_ID = "6280739103"
 
 ist = pytz.timezone("Asia/Kolkata")
 
-# discipline tracking
+# tracking
 obeyed = 0
 ignored = 0
 
@@ -30,8 +20,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await update.message.reply_text(
         "Focus Break Bot Activated 🚀\n\n"
-        "I will randomly tell you to stop using your phone.\n"
-        "Tap 👍 if you obey the break."
+        "I will randomly tell you to stop using your phone."
     )
 
 
@@ -63,54 +52,43 @@ async def handle_response(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if query.data == "obeyed":
         obeyed += 1
         await query.edit_message_text("🔥 Nice discipline. Break respected.")
-
     else:
         ignored += 1
         await query.edit_message_text("⚠️ Break ignored. Try the next one.")
 
 
-async def break_scheduler(app):
+async def random_break(context: ContextTypes.DEFAULT_TYPE):
 
-    bot = app.bot
+    now = datetime.now(ist)
 
-    while True:
+    if 9 <= now.hour <= 22:
 
-        now = datetime.now(ist)
+        x = random.randint(10, 20)
 
-        if 9 <= now.hour <= 22:
+        end_time = now + timedelta(minutes=x)
 
-            # break duration
-            x = random.randint(10, 20)
-
-            end_time = now + timedelta(minutes=x)
-
-            keyboard = [
-                [
-                    InlineKeyboardButton("👍 Yes", callback_data="obeyed"),
-                    InlineKeyboardButton("👎 No", callback_data="ignored"),
-                ]
+        keyboard = [
+            [
+                InlineKeyboardButton("👍 Yes", callback_data="obeyed"),
+                InlineKeyboardButton("👎 No", callback_data="ignored"),
             ]
+        ]
 
-            reply_markup = InlineKeyboardMarkup(keyboard)
+        reply_markup = InlineKeyboardMarkup(keyboard)
 
-            message = (
-                f"📵 Stop using your phone for {x} minutes.\n"
-                f"Resume at {end_time.strftime('%I:%M %p')}"
-            )
+        message = (
+            f"📵 Stop using your phone for {x} minutes.\n"
+            f"Resume at {end_time.strftime('%I:%M %p')}"
+        )
 
-            await bot.send_message(
-                chat_id=CHAT_ID,
-                text=message + "\n\nDid you obey the break?",
-                reply_markup=reply_markup,
-            )
-
-        # unpredictable next alert (30–90 minutes)
-        wait_minutes = random.randint(30, 90)
-
-        await asyncio.sleep(wait_minutes * 60)
+        await context.bot.send_message(
+            chat_id=CHAT_ID,
+            text=message + "\n\nDid you obey the break?",
+            reply_markup=reply_markup,
+        )
 
 
-async def main():
+def main():
 
     app = ApplicationBuilder().token(TOKEN).build()
 
@@ -118,11 +96,15 @@ async def main():
     app.add_handler(CommandHandler("score", score))
     app.add_handler(CallbackQueryHandler(handle_response))
 
-    asyncio.create_task(break_scheduler(app))
+    # unpredictable interval: 30–90 minutes
+    interval = random.randint(1800, 5400)
 
-    await app.run_polling()
+    app.job_queue.run_repeating(random_break, interval=interval, first=10)
+
+    print("Bot started")
+
+    app.run_polling()
 
 
 if __name__ == "__main__":
-
-    asyncio.run(main())
+    main()
